@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,6 +35,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(ValidationException ex, WebRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    // Covers BadCredentialsException and DisabledException from AuthService.login —
+    // same generic
+    // message for both so we never reveal whether the email exists or the account
+    // is inactive.
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password", request);
+    }
+
+    // @PreAuthorize denials (e.g. AuthorizationDeniedException) throw inside the
+    // controller call,
+    // so they reach here rather than JwtAccessDeniedHandler (which only sees
+    // filter-chain denials).
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "You do not have permission to access this resource", request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

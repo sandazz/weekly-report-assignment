@@ -29,6 +29,9 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/weekly_report_db
       - SPRING_DATASOURCE_USERNAME=weekly_user
       - SPRING_DATASOURCE_PASSWORD=weekly_password
+      # TODO: override with a real secret in production, do not use the fallback below
+      - JWT_SECRET=dev-only-insecure-fallback-change-me
+      - JWT_EXPIRATION_MS=86400000
     depends_on:
       - postgres
     # 2. USE THE STANDARD MVN COMMAND
