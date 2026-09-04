@@ -4,11 +4,8 @@ import java.util.List;
 
 import com.weeklyreport.backend.dto.ReportRequestDto;
 import com.weeklyreport.backend.dto.ReportResponseDto;
+import com.weeklyreport.backend.dto.ReportSummaryDto;
 import com.weeklyreport.backend.entity.Report;
-import com.weeklyreport.backend.entity.ReportAchievement;
-import com.weeklyreport.backend.entity.ReportBlocker;
-import com.weeklyreport.backend.entity.ReportHour;
-import com.weeklyreport.backend.entity.ReportTask;
 
 // Note: user/project associations are resolved and set by the service layer.
 public final class ReportMapper {
@@ -20,45 +17,27 @@ public final class ReportMapper {
         if (dto == null) {
             return null;
         }
-        Report report = Report.builder()
+        return Report.builder()
                 .weekStart(dto.weekStart())
                 .weekEnd(dto.weekEnd())
-                .status(dto.status())
                 .nextWeekPlan(dto.nextWeekPlan())
                 .keyBlocker(dto.keyBlocker())
                 .keyAchievement(dto.keyAchievement())
                 .note(dto.note())
                 .build();
+    }
 
-        if (dto.tasks() != null) {
-            List<ReportTask> tasks = dto.tasks().stream()
-                    .map(ReportTaskMapper::toEntity)
-                    .peek(task -> task.setReport(report))
-                    .toList();
-            report.setTasks(tasks);
+    public static ReportSummaryDto toSummaryDto(Report report) {
+        if (report == null) {
+            return null;
         }
-        if (dto.blockers() != null) {
-            List<ReportBlocker> blockers = dto.blockers().stream()
-                    .map(ReportBlockerMapper::toEntity)
-                    .peek(blocker -> blocker.setReport(report))
-                    .toList();
-            report.setBlockers(blockers);
-        }
-        if (dto.achievements() != null) {
-            List<ReportAchievement> achievements = dto.achievements().stream()
-                    .map(ReportAchievementMapper::toEntity)
-                    .peek(achievement -> achievement.setReport(report))
-                    .toList();
-            report.setAchievements(achievements);
-        }
-        if (dto.hours() != null) {
-            List<ReportHour> hours = dto.hours().stream()
-                    .map(ReportHourMapper::toEntity)
-                    .peek(hour -> hour.setReport(report))
-                    .toList();
-            report.setHours(hours);
-        }
-        return report;
+        return new ReportSummaryDto(
+                report.getId(),
+                report.getWeekStart(),
+                report.getWeekEnd(),
+                report.getProject().getName(),
+                report.getStatus(),
+                report.getUpdatedAt());
     }
 
     public static ReportResponseDto toResponseDto(Report report) {

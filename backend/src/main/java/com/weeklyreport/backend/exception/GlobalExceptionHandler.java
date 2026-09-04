@@ -37,6 +37,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(InvalidReportStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidReportState(InvalidReportStateException ex, WebRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
     // Covers BadCredentialsException and DisabledException from AuthService.login —
     // same generic
     // message for both so we never reveal whether the email exists or the account
