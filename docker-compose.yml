@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: weekly_report_db
+      POSTGRES_USER: weekly_user
+      POSTGRES_PASSWORD: weekly_password
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  
+  backend:
+    # 1. CHANGE THIS IMAGE (It includes Maven 3.9 and OpenJDK 21)
+    image: maven:3.9.6-eclipse-temurin-21-alpine 
+    container_name: spring_backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - ~/.m2:/root/.m2
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/weekly_report_db
+      - SPRING_DATASOURCE_USERNAME=weekly_user
+      - SPRING_DATASOURCE_PASSWORD=weekly_password
+    depends_on:
+      - postgres
+    # 2. USE THE STANDARD MVN COMMAND
+    command: mvn spring-boot:run
+
+
+  frontend:
+    image: node:22.22.3-alpine
+    container_name: frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
+
+volumes:
+  postgres_data:
