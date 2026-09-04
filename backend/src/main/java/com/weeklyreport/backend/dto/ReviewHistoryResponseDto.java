@@ -5,11 +5,10 @@ import java.time.LocalDateTime;
 import com.weeklyreport.backend.entity.enums.ReviewAction;
 
 public record ReviewHistoryResponseDto(
-        Long id,
-        Long reportId,
-        Long reportVersionId,
-        UserResponseDto reviewer,
-        ReviewAction action,
-        String comment,
-        LocalDateTime createdAt) {
+                Long id,
+                String reviewerName,
+                ReviewAction action,
+                String comment,
+                Integer versionNumber,
+                LocalDateTime createdAt) {
 }

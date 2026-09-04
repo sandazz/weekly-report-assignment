@@ -1,6 +1,8 @@
 package com.weeklyreport.backend.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
@@ -14,6 +16,9 @@ import com.weeklyreport.backend.dto.ReportResponseDto;
 import com.weeklyreport.backend.dto.ReportSummaryDto;
 import com.weeklyreport.backend.entity.Project;
 import com.weeklyreport.backend.entity.Report;
+import com.weeklyreport.backend.entity.ReportTask;
+import com.weeklyreport.backend.entity.ReportVersion;
+import com.weeklyreport.backend.entity.ReportVersionTask;
 import com.weeklyreport.backend.entity.enums.ReportStatus;
 import com.weeklyreport.backend.exception.DuplicateResourceException;
 import com.weeklyreport.backend.exception.InvalidReportStateException;
@@ -22,6 +27,7 @@ import com.weeklyreport.backend.mapper.ReportMapper;
 import com.weeklyreport.backend.repository.ProjectRepository;
 import com.weeklyreport.backend.repository.ReportRepository;
 import com.weeklyreport.backend.repository.ReportSpecifications;
+import com.weeklyreport.backend.repository.ReportVersionRepository;
 import com.weeklyreport.backend.repository.UserRepository;
 import com.weeklyreport.backend.security.CustomUserDetails;
 
@@ -38,6 +44,7 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ReportVersionRepository reportVersionRepository;
     private final ReportAccessGuard accessGuard;
 
     @Transactional
@@ -103,6 +110,7 @@ public class ReportService {
         if (report.getTasks().isEmpty()) {
             throw new InvalidReportStateException("At least one task is required to submit a report");
         }
+        createVersionSnapshot(report);
         report.setStatus(ReportStatus.SUBMITTED);
         return ReportMapper.toResponseDto(reportRepository.save(report));
     }
@@ -111,6 +119,65 @@ public class ReportService {
     public void deleteReport(Long reportId, CustomUserDetails currentUser) {
         Report report = accessGuard.loadEditable(reportId, currentUser, DELETABLE_STATUSES);
         reportRepository.delete(report);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ReportSummaryDto> getManagerReports(
+            Pageable pageable, ReportStatus statusFilter, Long projectId, Long userId) {
+        Specification<Report> spec = null;
+        if (statusFilter != null) {
+            spec = ReportSpecifications.hasStatus(statusFilter);
+        }
+        if (projectId != null) {
+            Specification<Report> hasProject = ReportSpecifications.hasProject(projectId);
+            spec = spec == null ? hasProject : spec.and(hasProject);
+        }
+        if (userId != null) {
+            Specification<Report> belongsToUser = ReportSpecifications.belongsToUser(userId);
+            spec = spec == null ? belongsToUser : spec.and(belongsToUser);
+        }
+        return reportRepository.findAll(spec, pageable).map(ReportMapper::toSummaryDto);
+    }
+
+    // Snapshot the report's shared text fields + a deep copy of its current tasks,
+    // frozen at
+    // submit time. Old versions are never edited or deleted once created.
+    private ReportVersion createVersionSnapshot(Report report) {
+        int nextVersionNumber = reportVersionRepository.findByReportIdOrderByVersionNumberDesc(report.getId())
+                .stream()
+                .findFirst()
+                .map(v -> v.getVersionNumber() + 1)
+                .orElse(1);
+
+        ReportVersion version = ReportVersion.builder()
+                .report(report)
+                .versionNumber(nextVersionNumber)
+                .nextWeekPlan(report.getNextWeekPlan())
+                .keyBlocker(report.getKeyBlocker())
+                .keyAchievement(report.getKeyAchievement())
+                .notes(report.getNote())
+                .submittedAt(LocalDateTime.now())
+                .build();
+
+        List<ReportVersionTask> versionTasks = report.getTasks().stream()
+                .map(task -> toVersionTask(task, version))
+                .toList();
+        version.setTasks(versionTasks);
+
+        return reportVersionRepository.save(version);
+    }
+
+    private ReportVersionTask toVersionTask(ReportTask task, ReportVersion version) {
+        return ReportVersionTask.builder()
+                .reportVersion(version)
+                .taskName(task.getTaskName())
+                .plannedPercentage(task.getPlannedPercentage())
+                .actualPercentage(task.getActualPercentage())
+                .status(task.getStatus())
+                .plannedHours(task.getPlannedHours())
+                .spentHours(task.getSpentHours())
+                .deliverable(task.getDeliverable())
+                .build();
     }
 
     private void checkNoDuplicate(Long userId, Long projectId, LocalDate weekStart, Long excludeReportId) {
