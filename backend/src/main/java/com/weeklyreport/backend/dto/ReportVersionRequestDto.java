@@ -12,6 +12,5 @@ public record ReportVersionRequestDto(
         String keyAchievement,
         String notes,
         LocalDateTime submittedAt,
-        List<ReportVersionTaskRequestDto> tasks
-) {
+        List<ReportVersionTaskRequestDto> tasks) {
 }

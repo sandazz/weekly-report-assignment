@@ -20,7 +20,8 @@ public class FlywayConfig {
                 .load();
     }
 
-    // Forces the "flyway" bean (and thus the migration) to run before entityManagerFactory validates the schema.
+    // Forces the "flyway" bean (and thus the migration) to run before
+    // entityManagerFactory validates the schema.
     @Bean
     public static BeanFactoryPostProcessor flywayDependsOnEntityManagerFactoryPostProcessor() {
         return (ConfigurableListableBeanFactory beanFactory) -> {

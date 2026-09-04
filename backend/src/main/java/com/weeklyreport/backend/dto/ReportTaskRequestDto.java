@@ -13,6 +13,5 @@ public record ReportTaskRequestDto(
         TaskStatus status,
         Double plannedHours,
         Double spentHours,
-        String deliverable
-) {
+        String deliverable) {
 }

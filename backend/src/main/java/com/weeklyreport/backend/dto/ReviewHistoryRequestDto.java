@@ -9,6 +9,5 @@ public record ReviewHistoryRequestDto(
         Long reportVersionId,
         @NotNull Long reviewerId,
         @NotNull ReviewAction action,
-        String comment
-) {
+        String comment) {
 }

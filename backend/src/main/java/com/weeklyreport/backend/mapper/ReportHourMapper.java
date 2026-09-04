@@ -28,7 +28,6 @@ public final class ReportHourMapper {
                 hour.getTaskType(),
                 hour.getHours(),
                 hour.getCreatedAt(),
-                hour.getUpdatedAt()
-        );
+                hour.getUpdatedAt());
     }
 }

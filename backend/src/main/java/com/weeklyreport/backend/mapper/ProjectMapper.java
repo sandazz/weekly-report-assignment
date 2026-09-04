@@ -30,7 +30,6 @@ public final class ProjectMapper {
                 project.getDescription(),
                 project.isActive(),
                 project.getCreatedAt(),
-                project.getUpdatedAt()
-        );
+                project.getUpdatedAt());
     }
 }

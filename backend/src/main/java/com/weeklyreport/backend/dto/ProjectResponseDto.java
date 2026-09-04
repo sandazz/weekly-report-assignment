@@ -8,6 +8,5 @@ public record ProjectResponseDto(
         String description,
         boolean active,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

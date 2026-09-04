@@ -4,6 +4,5 @@ import jakarta.validation.constraints.NotBlank;
 
 public record ReportAchievementRequestDto(
         @NotBlank String description,
-        Boolean isKeyAchievement
-) {
+        Boolean isKeyAchievement) {
 }

@@ -40,7 +40,6 @@ public final class ReportTaskMapper {
                 task.getSpentHours(),
                 task.getDeliverable(),
                 task.getCreatedAt(),
-                task.getUpdatedAt()
-        );
+                task.getUpdatedAt());
     }
 }

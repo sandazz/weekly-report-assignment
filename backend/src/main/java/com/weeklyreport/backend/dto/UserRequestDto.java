@@ -9,6 +9,5 @@ public record UserRequestDto(
         @NotBlank @Email String email,
         @NotBlank String password,
         @NotNull Long roleId,
-        Boolean active
-) {
+        Boolean active) {
 }

@@ -33,7 +33,6 @@ public final class UserMapper {
                 RoleMapper.toResponseDto(user.getRole()),
                 user.isActive(),
                 user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
+                user.getUpdatedAt());
     }
 }

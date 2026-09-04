@@ -6,6 +6,5 @@ public record RoleResponseDto(
         Long id,
         String name,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

@@ -12,6 +12,5 @@ public record ReportVersionResponseDto(
         String notes,
         LocalDateTime submittedAt,
         LocalDateTime createdAt,
-        List<ReportVersionTaskResponseDto> tasks
-) {
+        List<ReportVersionTaskResponseDto> tasks) {
 }

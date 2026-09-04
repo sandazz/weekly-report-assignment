@@ -20,6 +20,5 @@ public record ReportRequestDto(
         List<ReportTaskRequestDto> tasks,
         List<ReportBlockerRequestDto> blockers,
         List<ReportAchievementRequestDto> achievements,
-        List<ReportHourRequestDto> hours
-) {
+        List<ReportHourRequestDto> hours) {
 }

@@ -28,7 +28,6 @@ public final class ReportAchievementMapper {
                 achievement.getDescription(),
                 achievement.isKeyAchievement(),
                 achievement.getCreatedAt(),
-                achievement.getUpdatedAt()
-        );
+                achievement.getUpdatedAt());
     }
 }

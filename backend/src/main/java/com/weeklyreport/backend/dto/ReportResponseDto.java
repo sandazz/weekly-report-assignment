@@ -22,6 +22,5 @@ public record ReportResponseDto(
         List<ReportAchievementResponseDto> achievements,
         List<ReportHourResponseDto> hours,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

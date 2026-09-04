@@ -9,6 +9,5 @@ public record ReportHourResponseDto(
         TaskType taskType,
         Double hours,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

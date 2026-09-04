@@ -6,6 +6,5 @@ import jakarta.validation.constraints.NotNull;
 
 public record ReportHourRequestDto(
         TaskType taskType,
-        @NotNull Double hours
-) {
+        @NotNull Double hours) {
 }

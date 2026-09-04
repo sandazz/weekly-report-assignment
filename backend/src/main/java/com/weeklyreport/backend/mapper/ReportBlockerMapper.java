@@ -28,7 +28,6 @@ public final class ReportBlockerMapper {
                 blocker.getDescription(),
                 blocker.isKeyIssue(),
                 blocker.getCreatedAt(),
-                blocker.getUpdatedAt()
-        );
+                blocker.getUpdatedAt());
     }
 }

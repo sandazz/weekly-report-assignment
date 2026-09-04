@@ -7,6 +7,5 @@ public record ReportAchievementResponseDto(
         String description,
         boolean isKeyAchievement,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

@@ -9,6 +9,5 @@ public record UserResponseDto(
         RoleResponseDto role,
         boolean active,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

@@ -9,8 +9,7 @@ public record ErrorResponse(
         String error,
         String message,
         String path,
-        Map<String, String> fieldErrors
-) {
+        Map<String, String> fieldErrors) {
 
     public ErrorResponse(LocalDateTime timestamp, int status, String error, String message, String path) {
         this(timestamp, status, error, message, path, null);

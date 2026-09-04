@@ -76,12 +76,15 @@ public final class ReportMapper {
                 report.getKeyBlocker(),
                 report.getKeyAchievement(),
                 report.getNote(),
-                report.getTasks() == null ? List.of() : report.getTasks().stream().map(ReportTaskMapper::toResponseDto).toList(),
-                report.getBlockers() == null ? List.of() : report.getBlockers().stream().map(ReportBlockerMapper::toResponseDto).toList(),
-                report.getAchievements() == null ? List.of() : report.getAchievements().stream().map(ReportAchievementMapper::toResponseDto).toList(),
-                report.getHours() == null ? List.of() : report.getHours().stream().map(ReportHourMapper::toResponseDto).toList(),
+                report.getTasks() == null ? List.of()
+                        : report.getTasks().stream().map(ReportTaskMapper::toResponseDto).toList(),
+                report.getBlockers() == null ? List.of()
+                        : report.getBlockers().stream().map(ReportBlockerMapper::toResponseDto).toList(),
+                report.getAchievements() == null ? List.of()
+                        : report.getAchievements().stream().map(ReportAchievementMapper::toResponseDto).toList(),
+                report.getHours() == null ? List.of()
+                        : report.getHours().stream().map(ReportHourMapper::toResponseDto).toList(),
                 report.getCreatedAt(),
-                report.getUpdatedAt()
-        );
+                report.getUpdatedAt());
     }
 }

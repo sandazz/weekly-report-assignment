@@ -26,7 +26,6 @@ public final class RoleMapper {
                 role.getId(),
                 role.getName(),
                 role.getCreatedAt(),
-                role.getUpdatedAt()
-        );
+                role.getUpdatedAt());
     }
 }

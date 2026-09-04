@@ -31,7 +31,6 @@ public final class ReviewHistoryMapper {
                 UserMapper.toResponseDto(history.getReviewer()),
                 history.getAction(),
                 history.getComment(),
-                history.getCreatedAt()
-        );
+                history.getCreatedAt());
     }
 }

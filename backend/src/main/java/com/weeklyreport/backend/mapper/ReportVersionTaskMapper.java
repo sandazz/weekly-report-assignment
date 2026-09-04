@@ -36,7 +36,6 @@ public final class ReportVersionTaskMapper {
                 task.getStatus(),
                 task.getPlannedHours(),
                 task.getSpentHours(),
-                task.getDeliverable()
-        );
+                task.getDeliverable());
     }
 }

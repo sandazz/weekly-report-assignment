@@ -41,7 +41,6 @@ public final class ReportVersionMapper {
                 version.getNotes(),
                 version.getSubmittedAt(),
                 version.getCreatedAt(),
-                tasks == null ? List.of() : tasks.stream().map(ReportVersionTaskMapper::toResponseDto).toList()
-        );
+                tasks == null ? List.of() : tasks.stream().map(ReportVersionTaskMapper::toResponseDto).toList());
     }
 }

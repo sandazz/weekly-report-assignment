@@ -16,6 +16,5 @@ public record ReportTaskResponseDto(
         Double spentHours,
         String deliverable,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }

@@ -11,6 +11,5 @@ public record ReviewHistoryResponseDto(
         UserResponseDto reviewer,
         ReviewAction action,
         String comment,
-        LocalDateTime createdAt
-) {
+        LocalDateTime createdAt) {
 }

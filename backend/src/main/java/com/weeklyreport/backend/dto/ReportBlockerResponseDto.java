@@ -7,6 +7,5 @@ public record ReportBlockerResponseDto(
         String description,
         boolean isKeyIssue,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+        LocalDateTime updatedAt) {
 }
