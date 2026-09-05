@@ -7,6 +7,7 @@ import { Pagination } from "../../components/Pagination";
 import { Spinner } from "../../components/Spinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useReportFilters } from "../../hooks/useReportFilters";
+import { notifyError } from "../../lib/toast";
 import * as reviewService from "../../services/reviewService";
 import type { ReportSummary } from "../../types";
 
@@ -25,7 +26,7 @@ function SortHeader({
     const isActive = currentField === field;
     return (
         <th className="pb-2">
-            <button type="button" className="font-medium hover:underline" onClick={() => onSort(field)}>
+            <button type="button" className="-mx-2 px-2 py-1 font-medium hover:underline" onClick={() => onSort(field)}>
                 {label} {isActive && (currentDir === "asc" ? "▲" : "▼")}
             </button>
         </th>
@@ -56,6 +57,7 @@ export function ManagerReportsPage() {
                 setReports(response.content);
                 setTotalPages(response.totalPages);
             })
+            .catch((err) => notifyError(err, "Failed to load reports"))
             .finally(() => setIsLoading(false));
     }, [page, sort, filters.status, filters.projectId, filters.memberId, filters.fromDate, filters.toDate]);
 
@@ -68,7 +70,7 @@ export function ManagerReportsPage() {
                     Filtered by user #{filters.memberId} ·{" "}
                     <button
                         type="button"
-                        className="text-purple-600 hover:underline"
+                        className="-mx-2 px-2 py-1 text-purple-600 hover:underline"
                         onClick={() => setFilters({ memberId: "" })}
                     >
                         Clear
@@ -89,45 +91,47 @@ export function ManagerReportsPage() {
                 ) : reports.length === 0 ? (
                     <p className="py-8 text-center text-sm text-gray-500">No reports match these filters.</p>
                 ) : (
-                    <table className="w-full text-left text-sm">
-                        <thead className="text-gray-500">
-                            <tr>
-                                <th className="pb-2">Member</th>
-                                <SortHeader label="Week range" field="weekStart" sort={sort} onSort={setSort} />
-                                <th className="pb-2">Project</th>
-                                <th className="pb-2">Status</th>
-                                <SortHeader label="Last updated" field="updatedAt" sort={sort} onSort={setSort} />
-                                <th className="pb-2"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {reports.map((report) => (
-                                <tr key={report.id}>
-                                    <td className="py-2">{report.userName}</td>
-                                    <td className="py-2">
-                                        {report.weekStart} to {report.weekEnd}
-                                    </td>
-                                    <td className="py-2">{report.projectName}</td>
-                                    <td className="py-2">
-                                        <StatusBadge status={report.status} />
-                                    </td>
-                                    <td className="py-2">{new Date(report.updatedAt).toLocaleString()}</td>
-                                    <td className="py-2">
-                                        <Link
-                                            to={
-                                                report.status === "SUBMITTED"
-                                                    ? `/manager/reports/${report.id}/review`
-                                                    : `/reports/${report.id}`
-                                            }
-                                            className="text-purple-600 hover:underline"
-                                        >
-                                            {report.status === "SUBMITTED" ? "Review" : "Open"}
-                                        </Link>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="text-gray-500">
+                                <tr>
+                                    <th className="pb-2">Member</th>
+                                    <SortHeader label="Week range" field="weekStart" sort={sort} onSort={setSort} />
+                                    <th className="pb-2">Project</th>
+                                    <th className="pb-2">Status</th>
+                                    <SortHeader label="Last updated" field="updatedAt" sort={sort} onSort={setSort} />
+                                    <th className="pb-2"></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {reports.map((report) => (
+                                    <tr key={report.id}>
+                                        <td className="py-2">{report.userName}</td>
+                                        <td className="py-2">
+                                            {report.weekStart} to {report.weekEnd}
+                                        </td>
+                                        <td className="py-2">{report.projectName}</td>
+                                        <td className="py-2">
+                                            <StatusBadge status={report.status} />
+                                        </td>
+                                        <td className="py-2">{new Date(report.updatedAt).toLocaleString()}</td>
+                                        <td className="py-2">
+                                            <Link
+                                                to={
+                                                    report.status === "SUBMITTED"
+                                                        ? `/manager/reports/${report.id}/review`
+                                                        : `/reports/${report.id}`
+                                                }
+                                                className="text-purple-600 hover:underline"
+                                            >
+                                                {report.status === "SUBMITTED" ? "Review" : "Open"}
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
                 <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
             </Card>

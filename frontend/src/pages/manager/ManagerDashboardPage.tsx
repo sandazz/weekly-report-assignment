@@ -72,7 +72,7 @@ export function ManagerDashboardPage() {
 
     return (
         <div className="mx-auto flex max-w-5xl flex-col gap-4 p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h1 className="text-2xl font-semibold text-gray-900">Manager Dashboard</h1>
                 <div className="flex items-center gap-2">
                     <label className="text-sm font-medium text-gray-700">Week of</label>

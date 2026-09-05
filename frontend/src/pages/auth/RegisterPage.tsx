@@ -5,7 +5,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Input } from "../../components/Input";
 import { useAuth } from "../../hooks/useAuth";
-import type { NormalizedError } from "../../services/apiClient";
+import { notifyError } from "../../lib/toast";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -25,7 +25,6 @@ export function RegisterPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-    const [formError, setFormError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     function validate(): boolean {
@@ -42,7 +41,6 @@ export function RegisterPage() {
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        setFormError(null);
         if (!validate()) return;
 
         setIsSubmitting(true);
@@ -50,8 +48,7 @@ export function RegisterPage() {
             await register(name, email, password);
             navigate("/dashboard", { replace: true });
         } catch (err) {
-            const normalized = err as NormalizedError;
-            setFormError(normalized.message ?? "Registration failed");
+            notifyError(err, "Registration failed");
         } finally {
             setIsSubmitting(false);
         }
@@ -87,7 +84,6 @@ export function RegisterPage() {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         error={fieldErrors.confirmPassword}
                     />
-                    {formError && <p className="text-sm text-red-600">{formError}</p>}
                     <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting ? "Registering..." : "Register"}
                     </Button>

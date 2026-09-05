@@ -19,13 +19,14 @@ const NAV_ITEMS: NavItem[] = [
     { label: "Users", to: "/users", roles: ["ADMIN"] },
 ];
 
-function NavItemLink({ item }: { item: NavItem }) {
+function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
     const visible = useHasRole(item.roles);
     if (!visible) return null;
 
     return (
         <NavLink
             to={item.to}
+            onClick={onNavigate}
             className={({ isActive }) =>
                 `block rounded-md px-3 py-2 text-sm font-medium ${isActive ? "bg-purple-100 text-purple-700" : "text-gray-700 hover:bg-gray-100"
                 }`
@@ -36,14 +37,31 @@ function NavItemLink({ item }: { item: NavItem }) {
     );
 }
 
-export function Sidebar() {
+interface Props {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: Props) {
     return (
-        <nav className="w-56 shrink-0 border-r border-gray-200 bg-white p-4">
-            <div className="flex flex-col gap-1">
-                {NAV_ITEMS.map((item) => (
-                    <NavItemLink key={item.to} item={item} />
-                ))}
-            </div>
-        </nav>
+        <>
+            {isOpen && (
+                <div
+                    className="fixed inset-0 z-30 bg-black/40 md:hidden"
+                    aria-hidden="true"
+                    onClick={onClose}
+                />
+            )}
+            <nav
+                className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 transform border-r border-gray-200 bg-white p-4 transition-transform duration-200 ease-in-out md:static md:z-auto md:w-56 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+                    }`}
+            >
+                <div className="flex flex-col gap-1">
+                    {NAV_ITEMS.map((item) => (
+                        <NavItemLink key={item.to} item={item} onNavigate={onClose} />
+                    ))}
+                </div>
+            </nav>
+        </>
     );
 }

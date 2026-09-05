@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "primary" | "secondary";
+    variant?: "primary" | "secondary" | "destructive";
 };
 
 export function Button({ variant = "primary", className = "", ...props }: Props) {
@@ -9,6 +9,7 @@ export function Button({ variant = "primary", className = "", ...props }: Props)
     const variants = {
         primary: "bg-purple-600 text-white hover:bg-purple-700",
         secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+        destructive: "bg-red-600 text-white hover:bg-red-700",
     };
     return <button className={`${base} ${variants[variant]} ${className}`} {...props} />;
 }

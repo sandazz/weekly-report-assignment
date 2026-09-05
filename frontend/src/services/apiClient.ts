@@ -28,8 +28,11 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         const status: number | undefined = error.response?.status;
+        const isLoginAttempt = typeof error.config?.url === "string" && error.config.url.includes("/auth/login");
 
-        if (status === 401) {
+        // A 401 on the login endpoint itself is just "wrong credentials", not an expired session -
+        // let it fall through to the normal backend-message handling below instead of forcing a logout.
+        if (status === 401 && !isLoginAttempt) {
             // authBridge may not be registered yet (e.g. error during initial load) - clear directly too.
             triggerLogout();
             clearSession();

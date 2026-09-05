@@ -6,7 +6,8 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Input } from "../../components/Input";
 import { Spinner } from "../../components/Spinner";
-import type { NormalizedError } from "../../services/apiClient";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
+import { notifyError, notifySuccess } from "../../lib/toast";
 import * as reportService from "../../services/reportService";
 import * as reportTaskService from "../../services/reportTaskService";
 import * as reportBlockerService from "../../services/reportBlockerService";
@@ -59,8 +60,7 @@ export function ReportFormPage() {
     const [hours, setHours] = useState<HourFormRow[]>([]);
     const [correctionComment, setCorrectionComment] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(Boolean(id));
-    const [isSaving, setIsSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [isRowActionPending, setIsRowActionPending] = useState(false);
 
     const {
         register,
@@ -80,8 +80,11 @@ export function ReportFormPage() {
     });
 
     const isLocked = status === "SUBMITTED" || status === "APPROVED";
-    const canSubmit = reportId !== null && status !== null && EDITABLE_STATUSES.includes(status) &&
-        tasks.some((t) => t.id);
+    const isEditable = status !== null && EDITABLE_STATUSES.includes(status);
+    const hasSavedTask = tasks.some((t) => t.id);
+    const canSubmit = reportId !== null && isEditable && hasSavedTask;
+    const submitBlockedReason =
+        reportId !== null && isEditable && !hasSavedTask ? "Add and save at least one task before submitting." : null;
 
     useEffect(() => {
         projectService.getProjects().then(setProjects).catch(() => setProjects([]));
@@ -134,10 +137,7 @@ export function ReportFormPage() {
                     setCorrectionComment(history.length > 0 ? history[history.length - 1].comment : null);
                 }
             })
-            .catch((err) => {
-                const normalized = err as NormalizedError;
-                setMessage({ type: "error", text: normalized.message ?? "Failed to load report" });
-            })
+            .catch((err) => notifyError(err, "Failed to load report"))
             .finally(() => setIsLoading(false));
     }, [id, reset]);
 
@@ -147,10 +147,8 @@ export function ReportFormPage() {
         [achievements],
     );
 
-    async function onSaveDraft(values: ReportFormValues) {
-        setIsSaving(true);
-        setMessage(null);
-        try {
+    const { run: onSaveDraft, isLoading: isSavingDraft } = useAsyncAction(
+        async (values: ReportFormValues) => {
             const payload: ReportFormValues = {
                 ...values,
                 projectId: Number(values.projectId),
@@ -165,30 +163,20 @@ export function ReportFormPage() {
                 const updated = await reportService.updateReport(reportId, payload);
                 setStatus(updated.status);
             }
-            setMessage({ type: "success", text: "Draft saved." });
-        } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to save draft" });
-        } finally {
-            setIsSaving(false);
-        }
-    }
+        },
+        { successMessage: "Draft saved.", errorFallback: "Failed to save draft" },
+    );
 
-    async function onSubmitForReview() {
-        if (reportId === null) return;
-        setIsSaving(true);
-        setMessage(null);
-        try {
+    const { run: onSubmitForReview, isLoading: isSubmitting } = useAsyncAction(
+        async () => {
+            if (reportId === null) return;
             await reportService.submitReport(reportId);
-            setMessage({ type: "success", text: "Report submitted for review." });
             navigate(`/reports/${reportId}`);
-        } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to submit report" });
-        } finally {
-            setIsSaving(false);
-        }
-    }
+        },
+        { successMessage: "Report submitted for review.", errorFallback: "Failed to submit report" },
+    );
+
+    const isSaving = isSavingDraft || isSubmitting;
 
     // --- Tasks ---
     function addTaskRow() {
@@ -200,6 +188,7 @@ export function ReportFormPage() {
     async function saveTaskRow(index: number) {
         if (reportId === null) return;
         const row = tasks[index];
+        setIsRowActionPending(true);
         try {
             const saved = row.id
                 ? await reportTaskService.update(reportId, row.id, row)
@@ -213,21 +202,24 @@ export function ReportFormPage() {
                 plannedHours: saved.plannedHours ?? "",
                 spentHours: saved.spentHours ?? "",
             });
-            setMessage({ type: "success", text: "Task saved." });
+            notifySuccess("Task saved.");
         } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to save task" });
+            notifyError(err, "Failed to save task");
+        } finally {
+            setIsRowActionPending(false);
         }
     }
     async function deleteTaskRow(index: number) {
         const row = tasks[index];
         if (reportId !== null && row.id) {
+            setIsRowActionPending(true);
             try {
                 await reportTaskService.remove(reportId, row.id);
             } catch (err) {
-                const normalized = err as NormalizedError;
-                setMessage({ type: "error", text: normalized.message ?? "Failed to delete task" });
+                notifyError(err, "Failed to delete task");
                 return;
+            } finally {
+                setIsRowActionPending(false);
             }
         }
         setTasks((prev) => prev.filter((_, i) => i !== index));
@@ -246,26 +238,30 @@ export function ReportFormPage() {
     async function saveBlockerRow(index: number) {
         if (reportId === null) return;
         const row = blockers[index];
+        setIsRowActionPending(true);
         try {
             const saved = row.id
                 ? await reportBlockerService.update(reportId, row.id, row)
                 : await reportBlockerService.add(reportId, row);
             updateBlockerRow(index, { id: saved.id });
-            setMessage({ type: "success", text: "Blocker saved." });
+            notifySuccess("Blocker saved.");
         } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to save blocker" });
+            notifyError(err, "Failed to save blocker");
+        } finally {
+            setIsRowActionPending(false);
         }
     }
     async function deleteBlockerRow(index: number) {
         const row = blockers[index];
         if (reportId !== null && row.id) {
+            setIsRowActionPending(true);
             try {
                 await reportBlockerService.remove(reportId, row.id);
             } catch (err) {
-                const normalized = err as NormalizedError;
-                setMessage({ type: "error", text: normalized.message ?? "Failed to delete blocker" });
+                notifyError(err, "Failed to delete blocker");
                 return;
+            } finally {
+                setIsRowActionPending(false);
             }
         }
         setBlockers((prev) => prev.filter((_, i) => i !== index));
@@ -284,26 +280,30 @@ export function ReportFormPage() {
     async function saveAchievementRow(index: number) {
         if (reportId === null) return;
         const row = achievements[index];
+        setIsRowActionPending(true);
         try {
             const saved = row.id
                 ? await reportAchievementService.update(reportId, row.id, row)
                 : await reportAchievementService.add(reportId, row);
             updateAchievementRow(index, { id: saved.id });
-            setMessage({ type: "success", text: "Achievement saved." });
+            notifySuccess("Achievement saved.");
         } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to save achievement" });
+            notifyError(err, "Failed to save achievement");
+        } finally {
+            setIsRowActionPending(false);
         }
     }
     async function deleteAchievementRow(index: number) {
         const row = achievements[index];
         if (reportId !== null && row.id) {
+            setIsRowActionPending(true);
             try {
                 await reportAchievementService.remove(reportId, row.id);
             } catch (err) {
-                const normalized = err as NormalizedError;
-                setMessage({ type: "error", text: normalized.message ?? "Failed to delete achievement" });
+                notifyError(err, "Failed to delete achievement");
                 return;
+            } finally {
+                setIsRowActionPending(false);
             }
         }
         setAchievements((prev) => prev.filter((_, i) => i !== index));
@@ -319,26 +319,30 @@ export function ReportFormPage() {
     async function saveHourRow(index: number) {
         if (reportId === null) return;
         const row = hours[index];
+        setIsRowActionPending(true);
         try {
             const saved = row.id
                 ? await reportHourService.update(reportId, row.id, row)
                 : await reportHourService.add(reportId, row);
             updateHourRow(index, { id: saved.id });
-            setMessage({ type: "success", text: "Hours saved." });
+            notifySuccess("Hours saved.");
         } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to save hours" });
+            notifyError(err, "Failed to save hours");
+        } finally {
+            setIsRowActionPending(false);
         }
     }
     async function deleteHourRow(index: number) {
         const row = hours[index];
         if (reportId !== null && row.id) {
+            setIsRowActionPending(true);
             try {
                 await reportHourService.remove(reportId, row.id);
             } catch (err) {
-                const normalized = err as NormalizedError;
-                setMessage({ type: "error", text: normalized.message ?? "Failed to delete hours" });
+                notifyError(err, "Failed to delete hours");
                 return;
+            } finally {
+                setIsRowActionPending(false);
             }
         }
         setHours((prev) => prev.filter((_, i) => i !== index));
@@ -349,15 +353,6 @@ export function ReportFormPage() {
     return (
         <div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
             <h1 className="text-2xl font-semibold text-gray-900">{id ? "Edit Report" : "New Report"}</h1>
-
-            {message && (
-                <div
-                    className={`rounded-md px-4 py-2 text-sm ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                        }`}
-                >
-                    {message.text}
-                </div>
-            )}
 
             {isLocked && (
                 <div className="rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700">
@@ -374,7 +369,7 @@ export function ReportFormPage() {
 
             <Card>
                 <form onSubmit={handleSubmit(onSaveDraft)} className="flex flex-col gap-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <Input
                             label="Week start"
                             type="date"
@@ -427,19 +422,20 @@ export function ReportFormPage() {
                         />
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                         <Button type="submit" disabled={isLocked || isSaving}>
-                            Save Draft
+                            {isSavingDraft ? "Saving..." : "Save Draft"}
                         </Button>
                         <Button
                             type="button"
                             variant="secondary"
                             disabled={!canSubmit || isSaving}
-                            onClick={onSubmitForReview}
+                            onClick={() => onSubmitForReview()}
                         >
-                            Submit for Review
+                            {isSubmitting ? "Submitting..." : "Submit for Review"}
                         </Button>
                     </div>
+                    {submitBlockedReason && <p className="text-xs text-gray-500">{submitBlockedReason}</p>}
                 </form>
             </Card>
 
@@ -451,9 +447,9 @@ export function ReportFormPage() {
                         <h2 className="text-base font-semibold text-gray-900">Tasks</h2>
                         <div className="mt-3 flex flex-col gap-3">
                             {tasks.map((row, index) => (
-                                <div key={index} className="grid grid-cols-8 gap-2 rounded-md border border-gray-200 p-2">
+                                <div key={index} className="grid grid-cols-1 gap-2 rounded-md border border-gray-200 p-2 md:grid-cols-8">
                                     <input
-                                        className="col-span-2 rounded border border-gray-300 px-2 py-1 text-sm"
+                                        className="rounded border border-gray-300 px-2 py-1 text-sm md:col-span-2"
                                         placeholder="Task name"
                                         disabled={isLocked}
                                         value={row.taskName}
@@ -520,14 +516,14 @@ export function ReportFormPage() {
                                         value={row.deliverable}
                                         onChange={(e) => updateTaskRow(index, { deliverable: e.target.value })}
                                     />
-                                    <div className="col-span-1 flex gap-1">
-                                        <Button type="button" disabled={isLocked} onClick={() => saveTaskRow(index)}>
+                                    <div className="flex gap-1 md:col-span-1">
+                                        <Button type="button" disabled={isLocked || isRowActionPending} onClick={() => saveTaskRow(index)}>
                                             Save
                                         </Button>
                                         <Button
                                             type="button"
                                             variant="secondary"
-                                            disabled={isLocked}
+                                            disabled={isLocked || isRowActionPending}
                                             onClick={() => deleteTaskRow(index)}
                                         >
                                             Delete
@@ -535,7 +531,7 @@ export function ReportFormPage() {
                                     </div>
                                 </div>
                             ))}
-                            <Button type="button" variant="secondary" disabled={isLocked} onClick={addTaskRow}>
+                            <Button type="button" variant="secondary" disabled={isLocked || isRowActionPending} onClick={addTaskRow}>
                                 + Add Task
                             </Button>
                         </div>
@@ -545,15 +541,17 @@ export function ReportFormPage() {
                         <h2 className="text-base font-semibold text-gray-900">Blockers</h2>
                         <div className="mt-3 flex flex-col gap-3">
                             {blockers.map((row, index) => (
-                                <div key={index} className="flex items-center gap-2 rounded-md border border-gray-200 p-2">
-                                    <input
-                                        type="radio"
-                                        name="key-blocker"
-                                        disabled={isLocked}
-                                        checked={row.isKeyIssue}
-                                        onChange={() => toggleKeyBlocker(index)}
-                                    />
-                                    <span className="text-xs text-gray-500">Key issue</span>
+                                <div key={index} className="flex flex-col gap-2 rounded-md border border-gray-200 p-2 sm:flex-row sm:items-center">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            name="key-blocker"
+                                            disabled={isLocked}
+                                            checked={row.isKeyIssue}
+                                            onChange={() => toggleKeyBlocker(index)}
+                                        />
+                                        <span className="text-xs text-gray-500">Key issue</span>
+                                    </div>
                                     <input
                                         className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
                                         placeholder="Blocker description"
@@ -561,20 +559,22 @@ export function ReportFormPage() {
                                         value={row.description}
                                         onChange={(e) => updateBlockerRow(index, { description: e.target.value })}
                                     />
-                                    <Button type="button" disabled={isLocked} onClick={() => saveBlockerRow(index)}>
-                                        Save
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        disabled={isLocked}
-                                        onClick={() => deleteBlockerRow(index)}
-                                    >
-                                        Delete
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button type="button" disabled={isLocked || isRowActionPending} onClick={() => saveBlockerRow(index)}>
+                                            Save
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            disabled={isLocked || isRowActionPending}
+                                            onClick={() => deleteBlockerRow(index)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
-                            <Button type="button" variant="secondary" disabled={isLocked} onClick={addBlockerRow}>
+                            <Button type="button" variant="secondary" disabled={isLocked || isRowActionPending} onClick={addBlockerRow}>
                                 + Add Blocker
                             </Button>
                         </div>
@@ -584,15 +584,17 @@ export function ReportFormPage() {
                         <h2 className="text-base font-semibold text-gray-900">Achievements</h2>
                         <div className="mt-3 flex flex-col gap-3">
                             {achievements.map((row, index) => (
-                                <div key={index} className="flex items-center gap-2 rounded-md border border-gray-200 p-2">
-                                    <input
-                                        type="radio"
-                                        name="key-achievement"
-                                        disabled={isLocked}
-                                        checked={row.isKeyAchievement}
-                                        onChange={() => toggleKeyAchievement(index)}
-                                    />
-                                    <span className="text-xs text-gray-500">Key achievement</span>
+                                <div key={index} className="flex flex-col gap-2 rounded-md border border-gray-200 p-2 sm:flex-row sm:items-center">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            name="key-achievement"
+                                            disabled={isLocked}
+                                            checked={row.isKeyAchievement}
+                                            onChange={() => toggleKeyAchievement(index)}
+                                        />
+                                        <span className="text-xs text-gray-500">Key achievement</span>
+                                    </div>
                                     <input
                                         className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
                                         placeholder="Achievement description"
@@ -600,20 +602,22 @@ export function ReportFormPage() {
                                         value={row.description}
                                         onChange={(e) => updateAchievementRow(index, { description: e.target.value })}
                                     />
-                                    <Button type="button" disabled={isLocked} onClick={() => saveAchievementRow(index)}>
-                                        Save
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        disabled={isLocked}
-                                        onClick={() => deleteAchievementRow(index)}
-                                    >
-                                        Delete
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button type="button" disabled={isLocked || isRowActionPending} onClick={() => saveAchievementRow(index)}>
+                                            Save
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            disabled={isLocked || isRowActionPending}
+                                            onClick={() => deleteAchievementRow(index)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
-                            <Button type="button" variant="secondary" disabled={isLocked} onClick={addAchievementRow}>
+                            <Button type="button" variant="secondary" disabled={isLocked || isRowActionPending} onClick={addAchievementRow}>
                                 + Add Achievement
                             </Button>
                         </div>
@@ -623,7 +627,7 @@ export function ReportFormPage() {
                         <h2 className="text-base font-semibold text-gray-900">Hours breakdown (optional)</h2>
                         <div className="mt-3 flex flex-col gap-3">
                             {hours.map((row, index) => (
-                                <div key={index} className="flex items-center gap-2 rounded-md border border-gray-200 p-2">
+                                <div key={index} className="flex flex-col gap-2 rounded-md border border-gray-200 p-2 sm:flex-row sm:items-center">
                                     <select
                                         className="rounded border border-gray-300 px-2 py-1 text-sm"
                                         disabled={isLocked}
@@ -638,7 +642,7 @@ export function ReportFormPage() {
                                         ))}
                                     </select>
                                     <input
-                                        className="w-24 rounded border border-gray-300 px-2 py-1 text-sm"
+                                        className="w-full rounded border border-gray-300 px-2 py-1 text-sm sm:w-24"
                                         type="number"
                                         min={0}
                                         placeholder="Hours"
@@ -648,20 +652,22 @@ export function ReportFormPage() {
                                             updateHourRow(index, { hours: e.target.value === "" ? "" : Number(e.target.value) })
                                         }
                                     />
-                                    <Button type="button" disabled={isLocked} onClick={() => saveHourRow(index)}>
-                                        Save
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        disabled={isLocked}
-                                        onClick={() => deleteHourRow(index)}
-                                    >
-                                        Delete
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button type="button" disabled={isLocked || isRowActionPending} onClick={() => saveHourRow(index)}>
+                                            Save
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            disabled={isLocked || isRowActionPending}
+                                            onClick={() => deleteHourRow(index)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
-                            <Button type="button" variant="secondary" disabled={isLocked} onClick={addHourRow}>
+                            <Button type="button" variant="secondary" disabled={isLocked || isRowActionPending} onClick={addHourRow}>
                                 + Add Hours
                             </Button>
                         </div>

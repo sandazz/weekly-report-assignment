@@ -5,7 +5,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Input } from "../../components/Input";
 import { useAuth } from "../../hooks/useAuth";
-import type { NormalizedError } from "../../services/apiClient";
+import { notifyError } from "../../lib/toast";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,7 +16,6 @@ export function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
-    const [formError, setFormError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     function validate(): boolean {
@@ -30,7 +29,6 @@ export function LoginPage() {
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        setFormError(null);
         if (!validate()) return;
 
         setIsSubmitting(true);
@@ -38,8 +36,7 @@ export function LoginPage() {
             await login(email, password);
             navigate("/dashboard", { replace: true });
         } catch (err) {
-            const normalized = err as NormalizedError;
-            setFormError(normalized.message ?? "Login failed");
+            notifyError(err, "Login failed");
         } finally {
             setIsSubmitting(false);
         }
@@ -66,7 +63,6 @@ export function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         error={fieldErrors.password}
                     />
-                    {formError && <p className="text-sm text-red-600">{formError}</p>}
                     <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting ? "Logging in..." : "Log in"}
                     </Button>

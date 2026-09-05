@@ -5,9 +5,10 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { ReportContentView } from "../../components/ReportContentView";
 import { Spinner } from "../../components/Spinner";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
+import { notifyError } from "../../lib/toast";
 import * as reviewService from "../../services/reviewService";
 import * as reportService from "../../services/reportService";
-import type { NormalizedError } from "../../services/apiClient";
 import type { ReportDetail } from "../../types";
 
 export function ManagerReviewPage() {
@@ -15,10 +16,9 @@ export function ManagerReviewPage() {
     const navigate = useNavigate();
     const [report, setReport] = useState<ReportDetail | null>(null);
     const [comment, setComment] = useState("");
+    const [commentError, setCommentError] = useState<string | null>(null);
     const [showCommentBox, setShowCommentBox] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
     useEffect(() => {
         if (!id) return;
@@ -26,43 +26,41 @@ export function ManagerReviewPage() {
         reportService
             .getReport(Number(id))
             .then(setReport)
-            .catch((err) => {
-                const normalized = err as NormalizedError;
-                setMessage({ type: "error", text: normalized.message ?? "Failed to load report" });
-            })
+            .catch((err) => notifyError(err, "Failed to load report"))
             .finally(() => setIsLoading(false));
     }, [id]);
 
-    async function handleApprove() {
-        if (!id) return;
-        setIsSaving(true);
-        try {
+    const { run: approve, isLoading: isApproving } = useAsyncAction(
+        async () => {
+            if (!id) return;
             await reviewService.reviewReport(Number(id), "APPROVED", comment);
             navigate("/manager/dashboard");
-        } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to approve report" });
-        } finally {
-            setIsSaving(false);
-        }
-    }
+        },
+        { successMessage: "Report approved.", errorFallback: "Failed to approve report" },
+    );
 
-    async function handleRequestChanges() {
-        if (!id) return;
-        if (!comment.trim()) {
-            setMessage({ type: "error", text: "A comment is required to request changes." });
-            return;
-        }
-        setIsSaving(true);
-        try {
+    const { run: requestChanges, isLoading: isRequestingChanges } = useAsyncAction(
+        async () => {
+            if (!id) return;
             await reviewService.reviewReport(Number(id), "REQUESTED_CHANGES", comment);
             navigate("/manager/dashboard");
-        } catch (err) {
-            const normalized = err as NormalizedError;
-            setMessage({ type: "error", text: normalized.message ?? "Failed to request changes" });
-        } finally {
-            setIsSaving(false);
+        },
+        { successMessage: "Changes requested.", errorFallback: "Failed to request changes" },
+    );
+
+    const isSaving = isApproving || isRequestingChanges;
+
+    function handleRequestChangesClick() {
+        if (!showCommentBox) {
+            setShowCommentBox(true);
+            return;
         }
+        if (!comment.trim()) {
+            setCommentError("A comment is required to request changes.");
+            return;
+        }
+        setCommentError(null);
+        requestChanges();
     }
 
     if (isLoading) return <Spinner />;
@@ -71,15 +69,6 @@ export function ManagerReviewPage() {
     return (
         <div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
             <h1 className="text-2xl font-semibold text-gray-900">Review Report</h1>
-
-            {message && (
-                <div
-                    className={`rounded-md px-4 py-2 text-sm ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                        }`}
-                >
-                    {message.text}
-                </div>
-            )}
 
             <ReportContentView report={report} />
 
@@ -91,25 +80,31 @@ export function ManagerReviewPage() {
                 <Card>
                     <h2 className="text-base font-semibold text-gray-900">Review Decision</h2>
                     {showCommentBox && (
-                        <textarea
-                            className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                            rows={3}
-                            placeholder="Comment (required to request changes)"
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                        />
+                        <>
+                            <textarea
+                                className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                rows={3}
+                                placeholder="Comment (required to request changes)"
+                                value={comment}
+                                onChange={(e) => {
+                                    setComment(e.target.value);
+                                    if (commentError) setCommentError(null);
+                                }}
+                            />
+                            {commentError && <p className="mt-1 text-xs text-red-600">{commentError}</p>}
+                        </>
                     )}
-                    <div className="mt-3 flex gap-2">
-                        <Button type="button" disabled={isSaving} onClick={handleApprove}>
-                            Approve
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <Button type="button" disabled={isSaving} onClick={() => approve()}>
+                            {isApproving ? "Approving..." : "Approve"}
                         </Button>
                         <Button
                             type="button"
                             variant="secondary"
                             disabled={isSaving}
-                            onClick={() => (showCommentBox ? handleRequestChanges() : setShowCommentBox(true))}
+                            onClick={handleRequestChangesClick}
                         >
-                            Request Changes
+                            {isRequestingChanges ? "Requesting..." : "Request Changes"}
                         </Button>
                     </div>
                 </Card>

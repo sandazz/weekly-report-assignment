@@ -6,6 +6,7 @@ import { Card } from "../../components/Card";
 import { ReportContentView } from "../../components/ReportContentView";
 import { Spinner } from "../../components/Spinner";
 import { useAuth } from "../../hooks/useAuth";
+import { notifyError } from "../../lib/toast";
 import * as reportService from "../../services/reportService";
 import * as reportVersionService from "../../services/reportVersionService";
 import * as reviewService from "../../services/reviewService";
@@ -46,8 +47,12 @@ export function ReportDetailPage() {
 
     async function loadVersion(versionId: number) {
         if (!id) return;
-        const detail = await reportVersionService.getVersionDetail(Number(id), versionId);
-        setSelectedVersion(detail);
+        try {
+            const detail = await reportVersionService.getVersionDetail(Number(id), versionId);
+            setSelectedVersion(detail);
+        } catch (err) {
+            notifyError(err, "Failed to load version detail");
+        }
     }
 
     if (isLoading) return <Spinner />;
@@ -60,7 +65,7 @@ export function ReportDetailPage() {
 
     return (
         <div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h1 className="text-2xl font-semibold text-gray-900">Report Detail</h1>
                 <div className="flex gap-2">
                     {canEdit && (
@@ -106,26 +111,28 @@ export function ReportDetailPage() {
                                         <p className="mt-1 text-gray-700">
                                             <strong>Notes:</strong> {selectedVersion.notes || "-"}
                                         </p>
-                                        <table className="mt-2 w-full text-left text-sm">
-                                            <thead className="text-gray-500">
-                                                <tr>
-                                                    <th className="pb-1">Task</th>
-                                                    <th className="pb-1">Planned %</th>
-                                                    <th className="pb-1">Actual %</th>
-                                                    <th className="pb-1">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {selectedVersion.tasks.map((task) => (
-                                                    <tr key={task.id}>
-                                                        <td className="py-1">{task.taskName}</td>
-                                                        <td className="py-1">{task.plannedPercentage ?? "-"}</td>
-                                                        <td className="py-1">{task.actualPercentage ?? "-"}</td>
-                                                        <td className="py-1">{task.status ?? "-"}</td>
+                                        <div className="mt-2 overflow-x-auto">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="text-gray-500">
+                                                    <tr>
+                                                        <th className="pb-1">Task</th>
+                                                        <th className="pb-1">Planned %</th>
+                                                        <th className="pb-1">Actual %</th>
+                                                        <th className="pb-1">Status</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {selectedVersion.tasks.map((task) => (
+                                                        <tr key={task.id}>
+                                                            <td className="py-1">{task.taskName}</td>
+                                                            <td className="py-1">{task.plannedPercentage ?? "-"}</td>
+                                                            <td className="py-1">{task.actualPercentage ?? "-"}</td>
+                                                            <td className="py-1">{task.status ?? "-"}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
                             </div>
