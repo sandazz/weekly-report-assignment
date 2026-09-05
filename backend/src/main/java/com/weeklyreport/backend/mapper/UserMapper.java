@@ -2,6 +2,7 @@ package com.weeklyreport.backend.mapper;
 
 import com.weeklyreport.backend.dto.UserRequestDto;
 import com.weeklyreport.backend.dto.UserResponseDto;
+import com.weeklyreport.backend.dto.UserSummaryDto;
 import com.weeklyreport.backend.entity.User;
 
 // Note: role association is resolved and set by the service layer, not here.
@@ -34,5 +35,18 @@ public final class UserMapper {
                 user.isActive(),
                 user.getCreatedAt(),
                 user.getUpdatedAt());
+    }
+
+    public static UserSummaryDto toSummaryDto(User user) {
+        if (user == null) {
+            return null;
+        }
+        return new UserSummaryDto(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole().getName(),
+                user.isActive(),
+                user.getCreatedAt());
     }
 }

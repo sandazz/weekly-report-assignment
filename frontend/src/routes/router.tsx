@@ -4,13 +4,13 @@ import { MainLayout } from "../layouts/MainLayout";
 import { DashboardPage } from "../pages/DashboardPage";
 import { ForbiddenPage } from "../pages/ForbiddenPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
-import { ProjectsPage } from "../pages/ProjectsPage";
-import { UsersPage } from "../pages/UsersPage";
+import { ProjectsPage } from "../pages/projects/ProjectsPage";
+import { UserManagementPage } from "../pages/admin/UserManagementPage";
 import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ManagerDashboardPage } from "../pages/manager/ManagerDashboardPage";
 import { ManagerReviewPage } from "../pages/manager/ManagerReviewPage";
-import { NewReportPage } from "../pages/reports/NewReportPage";
+import { ReportFormPage } from "../pages/reports/ReportFormPage";
 import { ReportDetailPage } from "../pages/reports/ReportDetailPage";
 import { ReportHistoryPage } from "../pages/reports/ReportHistoryPage";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -33,7 +33,8 @@ export const router = createBrowserRouter([
                     {
                         element: <RoleProtectedRoute allowedRoles={["TEAM_MEMBER"]} />,
                         children: [
-                            { path: "reports/new", element: <NewReportPage /> },
+                            { path: "reports/new", element: <ReportFormPage /> },
+                            { path: "reports/:id/edit", element: <ReportFormPage /> },
                             { path: "reports/history", element: <ReportHistoryPage /> },
                         ],
                     },
@@ -46,7 +47,7 @@ export const router = createBrowserRouter([
                     },
                     {
                         element: <RoleProtectedRoute allowedRoles={["ADMIN"]} />,
-                        children: [{ path: "users", element: <UsersPage /> }],
+                        children: [{ path: "users", element: <UserManagementPage /> }],
                     },
                 ],
             },
