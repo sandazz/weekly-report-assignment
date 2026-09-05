@@ -9,6 +9,7 @@ import { UserManagementPage } from "../pages/admin/UserManagementPage";
 import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ManagerDashboardPage } from "../pages/manager/ManagerDashboardPage";
+import { ManagerReportsPage } from "../pages/manager/ManagerReportsPage";
 import { ManagerReviewPage } from "../pages/manager/ManagerReviewPage";
 import { ReportFormPage } from "../pages/reports/ReportFormPage";
 import { ReportDetailPage } from "../pages/reports/ReportDetailPage";
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
                         element: <RoleProtectedRoute allowedRoles={["MANAGER", "ADMIN"]} />,
                         children: [
                             { path: "manager/dashboard", element: <ManagerDashboardPage /> },
+                            { path: "manager/reports", element: <ManagerReportsPage /> },
                             { path: "manager/reports/:id/review", element: <ManagerReviewPage /> },
                         ],
                     },

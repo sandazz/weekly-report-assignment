@@ -14,6 +14,7 @@ const NAV_ITEMS: NavItem[] = [
     { label: "New Report", to: "/reports/new", roles: ["TEAM_MEMBER"] },
     { label: "Report History", to: "/reports/history", roles: ["TEAM_MEMBER"] },
     { label: "Manager Dashboard", to: "/manager/dashboard", roles: ["MANAGER", "ADMIN"] },
+    { label: "Manager Reports", to: "/manager/reports", roles: ["MANAGER", "ADMIN"] },
     { label: "Projects", to: "/projects", roles: ["TEAM_MEMBER", "MANAGER", "ADMIN"] },
     { label: "Users", to: "/users", roles: ["ADMIN"] },
 ];

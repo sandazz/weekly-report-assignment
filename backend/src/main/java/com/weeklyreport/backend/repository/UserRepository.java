@@ -1,5 +1,6 @@
 package com.weeklyreport.backend.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -17,4 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByRole_Name(String roleName);
 
     Page<User> findByRole_Name(String roleName, Pageable pageable);
+
+    List<User> findByRole_NameAndActiveTrue(String roleName);
 }

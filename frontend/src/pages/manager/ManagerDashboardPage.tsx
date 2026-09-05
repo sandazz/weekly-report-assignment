@@ -1,76 +1,151 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
+import { ActivityFeed } from "../../components/ActivityFeed";
 import { Card } from "../../components/Card";
-import { Pagination } from "../../components/Pagination";
+import { HoursByTypeChart } from "../../components/HoursByTypeChart";
+import { ProjectWorkloadChart } from "../../components/ProjectWorkloadChart";
 import { Spinner } from "../../components/Spinner";
 import { StatusBadge } from "../../components/StatusBadge";
-import * as reviewService from "../../services/reviewService";
-import type { ReportSummary } from "../../types";
+import { SummaryCard } from "../../components/SummaryCard";
+import { TasksTrendChart } from "../../components/TasksTrendChart";
+import * as dashboardService from "../../services/dashboardService";
+import { addDays, getCurrentWeekMonday } from "../../utils/week";
+import type {
+    ActivityFeedItem,
+    DashboardSummary,
+    HoursByType,
+    MemberStatus,
+    ProjectWorkload,
+    TaskTrendPoint,
+} from "../../types";
 
-// Minimal submitted-reports queue for this phase; richer dashboard (stats/charts) comes in Phase 8.
 export function ManagerDashboardPage() {
-    const [reports, setReports] = useState<ReportSummary[]>([]);
-    const [page, setPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
+    const [weekStart, setWeekStart] = useState(getCurrentWeekMonday());
+
+    const [summary, setSummary] = useState<DashboardSummary | null>(null);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+
+    const [trend, setTrend] = useState<TaskTrendPoint[]>([]);
+    const [isTrendLoading, setIsTrendLoading] = useState(true);
+
+    const [memberStatus, setMemberStatus] = useState<MemberStatus[]>([]);
+    const [isMemberStatusLoading, setIsMemberStatusLoading] = useState(true);
+
+    const [workload, setWorkload] = useState<ProjectWorkload[]>([]);
+    const [isWorkloadLoading, setIsWorkloadLoading] = useState(true);
+
+    const [hoursByType, setHoursByType] = useState<HoursByType[]>([]);
+    const [isHoursLoading, setIsHoursLoading] = useState(true);
+
+    const [activity, setActivity] = useState<ActivityFeedItem[]>([]);
+    const [isActivityLoading, setIsActivityLoading] = useState(true);
+
+    // Trend + activity feed are multi-week/recent by nature — not affected by the week selector.
+    useEffect(() => {
+        dashboardService.getSummary().then(setSummary).finally(() => setIsSummaryLoading(false));
+        dashboardService.getTaskTrend().then(setTrend).finally(() => setIsTrendLoading(false));
+        dashboardService.getActivityFeed().then(setActivity).finally(() => setIsActivityLoading(false));
+    }, []);
 
     useEffect(() => {
-        setIsLoading(true);
-        reviewService
-            .getManagerReports({ page, size: 10, status: "SUBMITTED" })
-            .then((response) => {
-                setReports(response.content);
-                setTotalPages(response.totalPages);
-            })
-            .finally(() => setIsLoading(false));
-    }, [page]);
+        setIsMemberStatusLoading(true);
+        dashboardService
+            .getMemberStatus(weekStart)
+            .then(setMemberStatus)
+            .finally(() => setIsMemberStatusLoading(false));
+
+        const weekEnd = addDays(weekStart, 6);
+        setIsWorkloadLoading(true);
+        dashboardService
+            .getWorkloadByProject(weekStart, weekEnd)
+            .then(setWorkload)
+            .finally(() => setIsWorkloadLoading(false));
+
+        setIsHoursLoading(true);
+        dashboardService
+            .getHoursByType(weekStart, weekEnd)
+            .then(setHoursByType)
+            .finally(() => setIsHoursLoading(false));
+    }, [weekStart]);
 
     return (
-        <div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Manager Dashboard</h1>
-            <Card>
-                <h2 className="text-base font-semibold text-gray-900">Reports awaiting review</h2>
-                {isLoading ? (
-                    <Spinner />
-                ) : reports.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">No reports are currently awaiting review.</p>
-                ) : (
-                    <table className="mt-3 w-full text-left text-sm">
-                        <thead className="text-gray-500">
-                            <tr>
-                                <th className="pb-2">Week</th>
-                                <th className="pb-2">Project</th>
-                                <th className="pb-2">Status</th>
-                                <th className="pb-2">Last updated</th>
-                                <th className="pb-2"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {reports.map((report) => (
-                                <tr key={report.id}>
-                                    <td className="py-2">
-                                        {report.weekStart} to {report.weekEnd}
-                                    </td>
-                                    <td className="py-2">{report.projectName}</td>
-                                    <td className="py-2">
-                                        <StatusBadge status={report.status} />
-                                    </td>
-                                    <td className="py-2">{new Date(report.updatedAt).toLocaleString()}</td>
-                                    <td className="py-2">
-                                        <Link
-                                            to={`/manager/reports/${report.id}/review`}
-                                            className="text-purple-600 hover:underline"
-                                        >
-                                            Review
-                                        </Link>
-                                    </td>
-                                </tr>
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 p-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold text-gray-900">Manager Dashboard</h1>
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700">Week of</label>
+                    <input
+                        type="date"
+                        value={weekStart}
+                        onChange={(e) => setWeekStart(e.target.value)}
+                        className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    />
+                </div>
+            </div>
+
+            {isSummaryLoading ? (
+                <Spinner />
+            ) : (
+                summary && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <SummaryCard label="Total Reports This Week" value={summary.totalReportsThisWeek} />
+                        <SummaryCard
+                            label="Compliance Rate"
+                            value={`${summary.complianceRatePercent.toFixed(0)}%`}
+                            subtext={`${summary.submittedCount} submitted · ${summary.pendingCount} pending · ${summary.lateCount} late`}
+                        />
+                        <SummaryCard label="Needs Correction" value={summary.needsCorrectionCount} />
+                        <SummaryCard label="Open Blockers" value={summary.openBlockersCount} />
+                    </div>
+                )
+            )}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Card>
+                    <h2 className="text-base font-semibold text-gray-900">Tasks Completed Trend</h2>
+                    {isTrendLoading ? <Spinner /> : <TasksTrendChart data={trend} />}
+                </Card>
+
+                <Card>
+                    <h2 className="text-base font-semibold text-gray-900">Submission Status by Team Member</h2>
+                    {isMemberStatusLoading ? (
+                        <Spinner />
+                    ) : memberStatus.length === 0 ? (
+                        <p className="py-8 text-center text-sm text-gray-500">No data yet</p>
+                    ) : (
+                        <ul className="mt-3 flex flex-col divide-y divide-gray-100">
+                            {memberStatus.map((member) => (
+                                <li key={member.userId}>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/manager/reports?userId=${member.userId}`)}
+                                        className="flex w-full items-center justify-between py-2 text-left hover:bg-gray-50"
+                                    >
+                                        <span className="text-sm text-gray-900">{member.userName}</span>
+                                        <StatusBadge status={member.status} />
+                                    </button>
+                                </li>
                             ))}
-                        </tbody>
-                    </table>
-                )}
-                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+                        </ul>
+                    )}
+                </Card>
+
+                <Card>
+                    <h2 className="text-base font-semibold text-gray-900">Workload by Project</h2>
+                    {isWorkloadLoading ? <Spinner /> : <ProjectWorkloadChart data={workload} />}
+                </Card>
+
+                <Card>
+                    <h2 className="text-base font-semibold text-gray-900">Time Spent by Task Type</h2>
+                    {isHoursLoading ? <Spinner /> : <HoursByTypeChart data={hoursByType} />}
+                </Card>
+            </div>
+
+            <Card>
+                <h2 className="text-base font-semibold text-gray-900">Recent Activity</h2>
+                {isActivityLoading ? <Spinner /> : <ActivityFeed items={activity} />}
             </Card>
         </div>
     );
