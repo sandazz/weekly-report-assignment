@@ -5,6 +5,9 @@ export interface GetManagerReportsParams extends PageParams {
     status?: ReportStatus;
     projectId?: number;
     userId?: number;
+    fromDate?: string;
+    toDate?: string;
+    sort?: string;
 }
 
 export async function reviewReport(reportId: number, action: ReviewAction, comment: string): Promise<ReportDetail> {

@@ -36,6 +36,7 @@ public final class ReportMapper {
                 report.getWeekStart(),
                 report.getWeekEnd(),
                 report.getProject().getName(),
+                report.getUser().getName(),
                 report.getStatus(),
                 report.getUpdatedAt());
     }

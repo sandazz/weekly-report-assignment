@@ -23,6 +23,7 @@ import com.weeklyreport.backend.entity.enums.ReportStatus;
 import com.weeklyreport.backend.exception.DuplicateResourceException;
 import com.weeklyreport.backend.exception.InvalidReportStateException;
 import com.weeklyreport.backend.exception.ResourceNotFoundException;
+import com.weeklyreport.backend.exception.ValidationException;
 import com.weeklyreport.backend.mapper.ReportMapper;
 import com.weeklyreport.backend.repository.ProjectRepository;
 import com.weeklyreport.backend.repository.ReportRepository;
@@ -93,14 +94,11 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public Page<ReportSummaryDto> getMyReports(
-            CustomUserDetails currentUser, Pageable pageable, ReportStatus statusFilter, Long projectId) {
-        Specification<Report> spec = ReportSpecifications.belongsToUser(currentUser.getUserId());
-        if (statusFilter != null) {
-            spec = spec.and(ReportSpecifications.hasStatus(statusFilter));
-        }
-        if (projectId != null) {
-            spec = spec.and(ReportSpecifications.hasProject(projectId));
-        }
+            CustomUserDetails currentUser, Pageable pageable, ReportStatus statusFilter, Long projectId,
+            LocalDate fromDate, LocalDate toDate) {
+        validateDateRange(fromDate, toDate);
+        Specification<Report> spec = ReportSpecifications.combine(
+                currentUser.getUserId(), statusFilter, projectId, fromDate, toDate);
         return reportRepository.findAll(spec, pageable).map(ReportMapper::toSummaryDto);
     }
 
@@ -123,20 +121,17 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public Page<ReportSummaryDto> getManagerReports(
-            Pageable pageable, ReportStatus statusFilter, Long projectId, Long userId) {
-        Specification<Report> spec = null;
-        if (statusFilter != null) {
-            spec = ReportSpecifications.hasStatus(statusFilter);
-        }
-        if (projectId != null) {
-            Specification<Report> hasProject = ReportSpecifications.hasProject(projectId);
-            spec = spec == null ? hasProject : spec.and(hasProject);
-        }
-        if (userId != null) {
-            Specification<Report> belongsToUser = ReportSpecifications.belongsToUser(userId);
-            spec = spec == null ? belongsToUser : spec.and(belongsToUser);
-        }
+            Pageable pageable, ReportStatus statusFilter, Long projectId, Long userId,
+            LocalDate fromDate, LocalDate toDate) {
+        validateDateRange(fromDate, toDate);
+        Specification<Report> spec = ReportSpecifications.combine(userId, statusFilter, projectId, fromDate, toDate);
         return reportRepository.findAll(spec, pageable).map(ReportMapper::toSummaryDto);
+    }
+
+    private void validateDateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new ValidationException("fromDate must not be after toDate");
+        }
     }
 
     // Snapshot the report's shared text fields + a deep copy of its current tasks,

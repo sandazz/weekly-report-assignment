@@ -4,6 +4,9 @@ import type { PageParams, PageResponse, ReportDetail, ReportFormValues, ReportSt
 export interface GetMyReportsParams extends PageParams {
     status?: ReportStatus;
     projectId?: number;
+    fromDate?: string;
+    toDate?: string;
+    sort?: string;
 }
 
 export async function createReport(data: ReportFormValues): Promise<ReportDetail> {

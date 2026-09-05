@@ -9,6 +9,7 @@ export interface ReportSummary {
     weekStart: string;
     weekEnd: string;
     projectName: string;
+    userName: string;
     status: ReportStatus;
     updatedAt: string;
 }

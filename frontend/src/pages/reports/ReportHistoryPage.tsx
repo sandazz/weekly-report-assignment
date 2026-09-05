@@ -3,27 +3,42 @@ import { Link } from "react-router-dom";
 
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { FilterBar } from "../../components/FilterBar";
 import { Pagination } from "../../components/Pagination";
 import { Spinner } from "../../components/Spinner";
 import { StatusBadge } from "../../components/StatusBadge";
+import { useReportFilters } from "../../hooks/useReportFilters";
 import * as reportService from "../../services/reportService";
-import * as projectService from "../../services/projectService";
-import type { Project, ReportStatus, ReportSummary } from "../../types";
+import type { ReportSummary } from "../../types";
 
-const STATUS_OPTIONS: ReportStatus[] = ["DRAFT", "SUBMITTED", "NEEDS_CORRECTION", "APPROVED"];
+function SortHeader({
+    label,
+    field,
+    sort,
+    onSort,
+}: {
+    label: string;
+    field: string;
+    sort: string;
+    onSort: (field: string) => void;
+}) {
+    const [currentField, currentDir] = sort.split(",");
+    const isActive = currentField === field;
+    return (
+        <th className="pb-2">
+            <button type="button" className="font-medium hover:underline" onClick={() => onSort(field)}>
+                {label} {isActive && (currentDir === "asc" ? "▲" : "▼")}
+            </button>
+        </th>
+    );
+}
 
 export function ReportHistoryPage() {
-    const [reports, setReports] = useState<ReportSummary[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [page, setPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
-    const [statusFilter, setStatusFilter] = useState<ReportStatus | "">("");
-    const [projectFilter, setProjectFilter] = useState<number | "">("");
-    const [isLoading, setIsLoading] = useState(true);
+    const { filters, setFilters, page, setPage, sort, setSort, clearAll } = useReportFilters();
 
-    useEffect(() => {
-        projectService.getProjects().then(setProjects).catch(() => setProjects([]));
-    }, []);
+    const [reports, setReports] = useState<ReportSummary[]>([]);
+    const [totalPages, setTotalPages] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         setIsLoading(true);
@@ -31,15 +46,18 @@ export function ReportHistoryPage() {
             .getMyReports({
                 page,
                 size: 10,
-                status: statusFilter || undefined,
-                projectId: projectFilter || undefined,
+                sort,
+                status: filters.status || undefined,
+                projectId: filters.projectId || undefined,
+                fromDate: filters.fromDate || undefined,
+                toDate: filters.toDate || undefined,
             })
             .then((response) => {
                 setReports(response.content);
                 setTotalPages(response.totalPages);
             })
             .finally(() => setIsLoading(false));
-    }, [page, statusFilter, projectFilter]);
+    }, [page, sort, filters.status, filters.projectId, filters.fromDate, filters.toDate]);
 
     return (
         <div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
@@ -50,38 +68,7 @@ export function ReportHistoryPage() {
                 </Link>
             </div>
 
-            <div className="flex gap-3">
-                <select
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    value={statusFilter}
-                    onChange={(e) => {
-                        setStatusFilter(e.target.value as ReportStatus | "");
-                        setPage(0);
-                    }}
-                >
-                    <option value="">All statuses</option>
-                    {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                            {s}
-                        </option>
-                    ))}
-                </select>
-                <select
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    value={projectFilter}
-                    onChange={(e) => {
-                        setProjectFilter(e.target.value === "" ? "" : Number(e.target.value));
-                        setPage(0);
-                    }}
-                >
-                    <option value="">All projects</option>
-                    {projects.map((project) => (
-                        <option key={project.id} value={project.id}>
-                            {project.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <FilterBar value={filters} onChange={setFilters} onClearAll={clearAll} />
 
             <Card>
                 {isLoading ? (
@@ -97,10 +84,10 @@ export function ReportHistoryPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="text-gray-500">
                             <tr>
-                                <th className="pb-2">Week</th>
+                                <SortHeader label="Week range" field="weekStart" sort={sort} onSort={setSort} />
                                 <th className="pb-2">Project</th>
                                 <th className="pb-2">Status</th>
-                                <th className="pb-2">Last updated</th>
+                                <SortHeader label="Last updated" field="updatedAt" sort={sort} onSort={setSort} />
                                 <th className="pb-2"></th>
                             </tr>
                         </thead>

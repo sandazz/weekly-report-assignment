@@ -1,7 +1,11 @@
 package com.weeklyreport.backend.controller;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,10 +30,13 @@ public class ManagerReportController {
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     public ResponseEntity<Page<ReportSummaryDto>> list(
-            Pageable pageable,
+            @PageableDefault(sort = "weekStart", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam(required = false) ReportStatus status,
             @RequestParam(required = false) Long projectId,
-            @RequestParam(required = false) Long userId) {
-        return ResponseEntity.ok(reportService.getManagerReports(pageable, status, projectId, userId));
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate) {
+        return ResponseEntity
+                .ok(reportService.getManagerReports(pageable, status, projectId, userId, fromDate, toDate));
     }
 }

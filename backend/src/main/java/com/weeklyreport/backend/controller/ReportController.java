@@ -1,7 +1,11 @@
 package com.weeklyreport.backend.controller;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -60,10 +64,13 @@ public class ReportController {
     @PreAuthorize("hasRole('TEAM_MEMBER')")
     public ResponseEntity<Page<ReportSummaryDto>> getMyReports(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            Pageable pageable,
+            @PageableDefault(sort = "weekStart", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam(required = false) ReportStatus status,
-            @RequestParam(required = false) Long projectId) {
-        return ResponseEntity.ok(reportService.getMyReports(currentUser, pageable, status, projectId));
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate) {
+        return ResponseEntity
+                .ok(reportService.getMyReports(currentUser, pageable, status, projectId, fromDate, toDate));
     }
 
     @PostMapping("/{id}/submit")

@@ -28,7 +28,7 @@ public class AdminUserController {
     private final UserAdminService userAdminService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<Page<UserSummaryDto>> list(
             Pageable pageable, @RequestParam(required = false) String roleName) {
         return ResponseEntity.ok(userAdminService.listUsers(pageable, roleName));
