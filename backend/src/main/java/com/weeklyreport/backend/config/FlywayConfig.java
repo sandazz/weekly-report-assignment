@@ -8,9 +8,13 @@ import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 // This Spring Boot version has no built-in Flyway auto-configuration, so it's wired manually here.
+// Skipped under the "test" profile: tests run against H2, and this Postgres-flavored SQL doesn't
+// need to (and can't reliably) run there - Hibernate's ddl-auto=create-drop builds the test schema.
 @Configuration
+@Profile("!test")
 public class FlywayConfig {
 
     @Bean(initMethod = "migrate")

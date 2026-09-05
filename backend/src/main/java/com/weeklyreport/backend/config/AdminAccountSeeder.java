@@ -2,6 +2,7 @@ package com.weeklyreport.backend.config;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -15,8 +16,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 // Creates a default ADMIN account on first startup, since there's no way to reach the
-// admin-only role-update endpoint until at least one admin already exists.
+// admin-only role-update endpoint until at least one admin already exists. Skipped under the
+// "test" profile: Flyway (and its role-seeding migration) is disabled there in favor of H2 +
+// Hibernate ddl-auto, so the ADMIN role wouldn't exist yet when this runs at context startup.
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 @Slf4j
 public class AdminAccountSeeder implements ApplicationRunner {
